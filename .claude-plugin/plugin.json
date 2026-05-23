@@ -2,8 +2,8 @@
   "name": "claude-diagram",
   "version": "1.0.0",
   "description": "Auto-generate and render Mermaid diagrams from plans and on demand",
-  "author": "sameera207",
-  "hooks": "hooks/hooks.json",
-  "commands": ["commands/explain-diagram.md"],
-  "skills": ["skills/diagram-inference.md"]
+  "author": {
+    "name": "sameera207",
+    "email": "sameera207@gmail.com"
+  }
 }

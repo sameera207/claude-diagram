@@ -18,14 +18,13 @@ A Claude Code plugin that automatically generates and renders Mermaid diagrams f
 
 ## Installation
 
-```bash
-/plugin install /path/to/claude-diagram
+Install via the [sameera207 plugin marketplace](https://github.com/sameera207/claude-plugins#installation).
+
+Inside Claude Code:
+
 ```
-
-Or once published:
-
-```bash
-/plugin install github:sameera207/claude-diagram
+/plugin marketplace add sameera207/claude-plugins
+/plugin install claude-diagram@sameera207
 ```
 
 ## Usage

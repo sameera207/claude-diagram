@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{DIAGRAM_TITLE}}</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f8f9fb;
+      color: #1a1a2e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 14px 20px;
+      background: #ffffff;
+      border-bottom: 1px solid #e4e4ee;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #111128;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge {
+      background: #f0f0f8;
+      border: 1px solid #d4d4ec;
+      color: #5050a0;
+      font-size: 0.68rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .rationale {
+      color: #7070a0;
+      font-size: 0.82rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #f0f0f8;
+      border: 1px solid #d4d4ec;
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .zoom-btn {
+      background: transparent;
+      border: none;
+      color: #5050a0;
+      font-size: 1rem;
+      width: 28px;
+      height: 26px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: background 0.12s;
+    }
+
+    .zoom-btn:hover { background: #e4e4f4; }
+
+    .zoom-level {
+      font-size: 0.72rem;
+      color: #7070a0;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      min-width: 36px;
+      text-align: center;
+      user-select: none;
+    }
+
+    .zoom-divider {
+      width: 1px;
+      height: 16px;
+      background: #d4d4ec;
+    }
+
+    .copy-btn {
+      background: #f0f0f8;
+      border: 1px solid #d4d4ec;
+      color: #5050a0;
+      font-size: 0.8rem;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .copy-btn:hover { background: #e4e4f4; color: #3030a0; }
+
+    .copy-btn.copied {
+      background: #e4f4ec;
+      border-color: #80c8a0;
+      color: #2a7050;
+    }
+
+    .diagram-wrapper {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      cursor: grab;
+    }
+
+    .diagram-wrapper.dragging { cursor: grabbing; }
+
+    /* pan-zoom layer sits inside wrapper, transforms applied here */
+    #pan-zoom {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      transform-origin: 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #diagram {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #diagram svg {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100%;
+      max-height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>{{DIAGRAM_TITLE}}</h1>
+      <span class="badge">{{DIAGRAM_TYPE_BADGE}}</span>
+      <span class="rationale">{{DIAGRAM_RATIONALE}}</span>
+    </div>
+    <div class="header-right">
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomOut" title="Zoom out (-)">−</button>
+        <span class="zoom-level" id="zoomLevel">100%</span>
+        <div class="zoom-divider"></div>
+        <button class="zoom-btn" id="zoomReset" title="Reset zoom">⊙</button>
+        <div class="zoom-divider"></div>
+        <button class="zoom-btn" id="zoomIn" title="Zoom in (+)">+</button>
+      </div>
+      <button class="copy-btn" id="copyBtn">Copy Mermaid Source</button>
+    </div>
+  </div>
+
+  <div class="diagram-wrapper" id="wrapper">
+    <div id="pan-zoom">
+      <div id="diagram"></div>
+    </div>
+  </div>
+
+  <script>
+    const mermaidSource = `{{MERMAID_SOURCE}}`;
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      themeVariables: {
+        fontSize: '14px',
+        primaryColor: '#eaeaf8',
+        primaryTextColor: '#111128',
+        primaryBorderColor: '#a0a0d0',
+        lineColor: '#6060a0',
+        secondaryColor: '#f4f4fc',
+        tertiaryColor: '#f8f8fe',
+        edgeLabelBackground: '#f8f9fb'
+      }
+    });
+
+    // --- pan/zoom state ---
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    const MIN_SCALE = 0.2;
+    const MAX_SCALE = 5;
+    const STEP = 0.15;
+
+    const panZoom = document.getElementById('pan-zoom');
+    const wrapper = document.getElementById('wrapper');
+    const zoomLevelEl = document.getElementById('zoomLevel');
+
+    function applyTransform(animate) {
+      panZoom.style.transition = animate ? 'transform 0.18s ease' : 'none';
+      panZoom.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      zoomLevelEl.textContent = Math.round(scale * 100) + '%';
+    }
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function zoomAt(cx, cy, factor) {
+      // cx, cy are in wrapper coords — zoom toward that point
+      const newScale = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+      const ratio = newScale / scale;
+      panX = cx - ratio * (cx - panX);
+      panY = cy - ratio * (cy - panY);
+      scale = newScale;
+      applyTransform(false);
+    }
+
+    function resetZoom() {
+      scale = 1; panX = 0; panY = 0;
+      applyTransform(true);
+    }
+
+    // Button controls — zoom toward center of wrapper
+    document.getElementById('zoomIn').addEventListener('click', () => {
+      const r = wrapper.getBoundingClientRect();
+      zoomAt(r.width / 2, r.height / 2, 1 + STEP);
+    });
+    document.getElementById('zoomOut').addEventListener('click', () => {
+      const r = wrapper.getBoundingClientRect();
+      zoomAt(r.width / 2, r.height / 2, 1 - STEP);
+    });
+    document.getElementById('zoomReset').addEventListener('click', resetZoom);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const r = wrapper.getBoundingClientRect();
+      const cx = r.width / 2, cy = r.height / 2;
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomAt(cx, cy, 1 + STEP); }
+      if (e.key === '-')                   { e.preventDefault(); zoomAt(cx, cy, 1 - STEP); }
+      if (e.key === '0')                   { e.preventDefault(); resetZoom(); }
+    });
+
+    // Wheel zoom toward cursor
+    wrapper.addEventListener('wheel', e => {
+      e.preventDefault();
+      const r = wrapper.getBoundingClientRect();
+      const cx = e.clientX - r.left;
+      const cy = e.clientY - r.top;
+      const factor = e.deltaY < 0 ? 1 + STEP : 1 - STEP;
+      zoomAt(cx, cy, factor);
+    }, { passive: false });
+
+    // Drag to pan
+    let dragging = false;
+    let dragStartX, dragStartY;
+
+    wrapper.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      dragging = true;
+      dragStartX = e.clientX - panX;
+      dragStartY = e.clientY - panY;
+      wrapper.classList.add('dragging');
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      panX = e.clientX - dragStartX;
+      panY = e.clientY - dragStartY;
+      applyTransform(false);
+    });
+
+    document.addEventListener('mouseup', () => {
+      dragging = false;
+      wrapper.classList.remove('dragging');
+    });
+
+    // --- render ---
+    async function renderDiagram() {
+      try {
+        const { svg } = await mermaid.render('diagram-svg', mermaidSource);
+        const container = document.getElementById('diagram');
+        container.innerHTML = svg;
+
+        const svgEl = container.querySelector('svg');
+        if (svgEl) {
+          if (!svgEl.getAttribute('viewBox')) {
+            const w = parseFloat(svgEl.getAttribute('width'));
+            const h = parseFloat(svgEl.getAttribute('height'));
+            if (w && h) svgEl.setAttribute('viewBox', `0 0 ${w} ${h}`);
+          }
+          svgEl.removeAttribute('width');
+          svgEl.removeAttribute('height');
+          svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        }
+      } catch (err) {
+        document.getElementById('diagram').innerHTML =
+          `<pre style="color:#c03030;font-size:0.85rem;white-space:pre-wrap;padding:16px">${err.message}</pre>`;
+      }
+    }
+
+    renderDiagram();
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(mermaidSource).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy Mermaid Source';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -3,6 +3,8 @@ name: explain-diagram
 description: Generate a Mermaid diagram explaining the current context or a specific topic
 ---
 
+IMPORTANT: Never output raw Mermaid syntax as text. Always render it to the browser using the Bash command at the end of these instructions.
+
 Analyze the user's request and the current conversation context.
 
 Determine the single most appropriate Mermaid diagram type from:
@@ -15,23 +17,14 @@ Determine the single most appropriate Mermaid diagram type from:
 - `gitGraph`
 - `C4Context`
 
-Generate valid Mermaid syntax for the chosen type.
+Produce a single-line JSON object in exactly this shape (no markdown fences, no other text):
 
-Produce a JSON object in exactly this shape (no other text, no markdown fences):
+{"diagramType":"<type>","rationale":"<one sentence explaining why this type>","title":"<short human-readable title>","mermaid":"<mermaid syntax with \\n for newlines>"}
 
-```json
-{
-  "diagramType": "<type>",
-  "rationale": "<one sentence explaining why this type>",
-  "title": "<short human-readable title>",
-  "mermaid": "<mermaid syntax with \\n for newlines>"
-}
-```
-
-After producing the JSON, execute the following Bash command to render and open the diagram automatically:
+Then immediately render it by writing the JSON to a temp file and piping it to the render script:
 
 ```bash
-echo '<paste the JSON here as a single line>' | node "${CLAUDE_PLUGIN_ROOT}/hooks/render-diagram.js"
+printf '%s' '<your single-line JSON>' > /tmp/claude-diagram-input.json && node "${CLAUDE_PLUGIN_ROOT}/hooks/render-diagram.js" < /tmp/claude-diagram-input.json
 ```
 
-Replace `<paste the JSON here as a single line>` with the actual JSON you generated (serialized to a single line, with inner quotes escaped). Do not include any other text after the Bash block.
+Do not include any Mermaid code blocks or diagram content in your text response — the browser is the output.

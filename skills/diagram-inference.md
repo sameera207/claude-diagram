@@ -1,9 +1,11 @@
 ---
 name: diagram-inference
-description: Guides diagram type selection when generating Mermaid diagrams
+description: "REQUIRED for any Mermaid diagram output. Never write raw Mermaid syntax as text — always render to the browser via this skill."
 ---
 
-When generating a Mermaid diagram (either via `/explain-diagram` or triggered by a plan), choose the diagram type based on:
+Whenever you produce a Mermaid diagram for any reason, you MUST render it in the browser. Never output raw Mermaid code blocks in your text response.
+
+Choose the diagram type based on the content:
 
 - **Processes / flows / decisions** → `flowchart TD`
 - **API calls / multi-actor interactions** → `sequenceDiagram`
@@ -19,4 +21,8 @@ Produce a single-line JSON object (no markdown fences, no extra text):
 
 {"diagramType":"<type>","title":"<short title>","rationale":"<one sentence>","mermaid":"<mermaid syntax with \\n for newlines>"}
 
-Then render it by piping that JSON to `render-diagram.js` via Bash. The render script path is available as `${CLAUDE_PLUGIN_ROOT}/hooks/render-diagram.js`.
+Then immediately render it — write the JSON to a temp file and pipe it to the render script:
+
+```bash
+printf '%s' '<your single-line JSON>' > /tmp/claude-diagram-input.json && node "${CLAUDE_PLUGIN_ROOT}/hooks/render-diagram.js" < /tmp/claude-diagram-input.json
+```

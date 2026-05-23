@@ -48,11 +48,13 @@ async function main() {
 
   const context = `A plan was just written. Generate a Mermaid diagram for it now.
 
+IMPORTANT: Do NOT output raw Mermaid syntax in your text response. You MUST render it to the browser.
+
 Use the diagram-inference skill to pick the right diagram type, then produce a single-line JSON object in this shape:
 {"diagramType":"...","title":"...","rationale":"...","mermaid":"..."}
 
-Render it immediately by running this Bash command (replace the JSON placeholder with your actual output):
-echo '<your single-line JSON>' | node "${renderScript}"
+Render it immediately by writing the JSON to a temp file and piping it to the render script:
+printf '%s' '<your single-line JSON>' > /tmp/claude-diagram-input.json && node "${renderScript}" < /tmp/claude-diagram-input.json
 
 Plan content to diagram:
 ${planContent}`;

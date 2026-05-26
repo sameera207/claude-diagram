@@ -14,18 +14,6 @@
           }
         ]
       },
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/auto-plan-diagram.js"],
-            "statusMessage": "Checking diagram options...",
-            "timeout": 30
-          }
-        ]
-      }
     ]
   }
 }

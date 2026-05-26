@@ -1,7 +1,7 @@
 {
   "name": "claude-diagram",
   "version": "1.0.0",
-  "description": "Auto-generate and render Mermaid diagrams from plans and on demand",
+  "description": "Render Mermaid diagrams inline when writing plans or on demand — never ASCII art",
   "author": {
     "name": "sameera207",
     "email": "sameera207@gmail.com"

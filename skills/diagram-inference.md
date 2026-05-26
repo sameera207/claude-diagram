@@ -16,6 +16,7 @@ Choose the diagram type based on the content:
 - **Git workflows** → `gitGraph`
 - **System architecture** → `C4Context`
 - **Pipelines / left-to-right flows** → `flowchart LR`
+- **Implementation plans / step sequences** → `flowchart TD`
 
 Produce a single-line JSON object (no markdown fences, no extra text):
 

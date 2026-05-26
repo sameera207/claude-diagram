@@ -7,6 +7,75 @@ const { execSync } = require('node:child_process');
 
 const OUTPUT_PATH = '/tmp/claude-diagram.html';
 
+function printHeader(diagram) {
+  const title = diagram.title || diagram.diagramType || 'Diagram';
+  const type = diagram.diagramType || '';
+  const rationale = diagram.rationale || '';
+  const W = 62;
+  const bar = '─'.repeat(W);
+  const pad = s => s.slice(0, W - 2).padEnd(W - 2);
+  process.stdout.write(`\n\x1b[36m┌${bar}┐\x1b[0m\n`);
+  process.stdout.write(`\x1b[36m│\x1b[0m \x1b[1m${pad(title)}\x1b[0m \x1b[36m│\x1b[0m\n`);
+  if (type) {
+    process.stdout.write(`\x1b[36m│\x1b[0m \x1b[2mtype: ${pad('type: ' + type).slice(6)}\x1b[0m \x1b[36m│\x1b[0m\n`);
+  }
+  if (rationale) {
+    const words = rationale.split(' ');
+    let cur = '';
+    for (const w of words) {
+      if (cur && (cur + ' ' + w).length > W - 2) {
+        process.stdout.write(`\x1b[36m│\x1b[0m \x1b[2m${pad(cur)}\x1b[0m \x1b[36m│\x1b[0m\n`);
+        cur = w;
+      } else {
+        cur = cur ? cur + ' ' + w : w;
+      }
+    }
+    if (cur) process.stdout.write(`\x1b[36m│\x1b[0m \x1b[2m${pad(cur)}\x1b[0m \x1b[36m│\x1b[0m\n`);
+  }
+  process.stdout.write(`\x1b[36m└${bar}┘\x1b[0m\n`);
+}
+
+function findImgcat() {
+  const candidates = [
+    '/Applications/iTerm.app/Contents/Resources/utilities/imgcat',
+    '/usr/local/bin/imgcat',
+    '/usr/bin/imgcat',
+  ];
+  for (const p of candidates) {
+    try { if (fs.statSync(p).isFile()) return p; } catch {}
+  }
+  try {
+    const r = execSync('which imgcat 2>/dev/null', { encoding: 'utf8', stdio: 'pipe' }).trim();
+    if (r) return r;
+  } catch {}
+  return null;
+}
+
+function renderInTerminal(diagram) {
+  const imgcat = findImgcat();
+  if (!imgcat) return false;
+
+  try {
+    const payload = JSON.stringify({ code: diagram.mermaid, mermaid: { theme: 'default' } });
+    const encoded = Buffer.from(payload).toString('base64url');
+    const imgUrl = `https://mermaid.ink/img/${encoded}`;
+    const tmpPng = '/tmp/claude-diagram-inline.png';
+
+    execSync(`curl -s -L --max-time 15 -o "${tmpPng}" "${imgUrl}"`, { stdio: 'pipe' });
+
+    let size = 0;
+    try { size = fs.statSync(tmpPng).size; } catch {}
+    if (size < 200) return false;
+
+    const imgData = execSync(`"${imgcat}" "${tmpPng}"`, { encoding: 'buffer' });
+    process.stdout.write(imgData);
+    return true;
+  } catch (e) {
+    process.stderr.write(`render-diagram: terminal render failed: ${e.message}\n`);
+    return false;
+  }
+}
+
 function readStdin() {
   return new Promise((resolve) => {
     let data = '';
@@ -67,7 +136,13 @@ async function main() {
     process.exit(0);
   }
 
-  openBrowser(OUTPUT_PATH);
+  printHeader(diagram);
+  const rendered = renderInTerminal(diagram);
+  if (rendered) {
+    process.stdout.write(`\x1b[2mFull interactive view: ${OUTPUT_PATH}\x1b[0m\n\n`);
+  } else {
+    openBrowser(OUTPUT_PATH);
+  }
 }
 
 function escapeHtml(str) {

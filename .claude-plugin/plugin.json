@@ -1,7 +1,9 @@
 {
+  "id": "claude-diagram",
   "name": "claude-diagram",
   "version": "1.0.0",
   "description": "Render Mermaid diagrams inline when writing plans or on demand — never ASCII art",
+  "main": "index.js",
   "author": {
     "name": "sameera207",
     "email": "sameera207@gmail.com"
